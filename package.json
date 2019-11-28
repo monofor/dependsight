@@ -1,0 +1,13 @@
+{
+  "name": "dependsight",
+  "version": "1.0.0",
+  "main": "index.js",
+  "author": "Selçuk Ermaya <selcukermaya@gmail.com>",
+  "license": "MIT",
+  "scripts": {
+    "dev": "dotnet watch run",
+    "nupkg": "dotnet pack -c Release",
+    "tool:update": "dotnet tool update --global --add-source ./nupkg MonoFor.Dependsight",
+    "tool:install": "dotnet tool install --global --add-source ./nupkg MonoFor.Dependsight"
+  }
+}
