@@ -4,9 +4,7 @@ import {
   Container,
   Navbar,
   NavbarBrand,
-  NavbarToggler,
-  NavItem,
-  NavLink
+  NavbarToggler
 } from "reactstrap";
 import { Link } from "react-router-dom";
 import "./NavMenu.css";

@@ -132,9 +132,17 @@ export class Home extends Component {
           this.state.data.projects
             .filter(item => item.dependencies.length)
             .map(item => (
-              <div className="card mb-3 shadow-sm" key={item.name}>
+              <div className="card mb-3 shadow-sm" key={item.file}>
                 <div className="card-body p-2">
-                  <h5 className="mb-0">{item.name}</h5>
+                  <h5 className="mb-0 d-flex align-items-center justify-content-between">
+                    <span>{item.name}</span>
+                    <span
+                      className="mt-1 d-block text-muted"
+                      style={{ fontSize: "9pt" }}
+                    >
+                      {item.file}
+                    </span>
+                  </h5>
                 </div>
                 <table className="table table-hover table-sm mb-0 text-monospace">
                   <thead>
@@ -154,7 +162,7 @@ export class Home extends Component {
                   </thead>
                   <tbody>
                     {item.dependencies.map(dependency => (
-                      <tr key={`${item.name}:${dependency.name}`}>
+                      <tr key={`${item.file}:${dependency.name}`}>
                         <td
                           className={this.getDependencyClassName(dependency)}
                         ></td>
@@ -166,17 +174,13 @@ export class Home extends Component {
                             </small>
                           )}
                         </td>
-                        <td
-                          className="text-center"
-                          title={
-                            dependency.isParameter
-                              ? `Parameter: ${dependency.parameterName}`
-                              : ""
-                          }
-                        >
+                        <td className="text-center">
                           <span
                             className={
-                              dependency.isParameter ? "text-primary" : ""
+                              (dependency.isParameter ? "text-primary" : "",
+                              dependency.currentVersion === "-Unkown Value-"
+                                ? "text-danger"
+                                : "")
                             }
                           >
                             {dependency.currentVersion}
