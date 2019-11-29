@@ -227,6 +227,7 @@ namespace MonoFor.DependSight.Controllers
 					var dependencies = new List<object>();
 
 					var parameters = new Dictionary<string, string>();
+					var parameterFile = string.Empty;
 
 					var importProperties = xmlDoc.SelectNodes("//Project/Import");
 					foreach (XmlNode importProperty in importProperties)
@@ -235,7 +236,13 @@ namespace MonoFor.DependSight.Controllers
 						if (projectValue == null) continue;
 
 						var propsFile = new FileInfo(Path.Combine(fileInfo.Directory.FullName, projectValue.Value));
-						if (!propsFile.Exists) continue;
+						if (!propsFile.Exists)
+						{
+							parameterFile = $"(NOT FOUND!) {propsFile.FullName}";
+							continue;
+						}
+
+						parameterFile = propsFile.FullName;
 
 						using (var srProperties = new StreamReader(propsFile.FullName))
 						{
@@ -270,7 +277,7 @@ namespace MonoFor.DependSight.Controllers
 							if (parameters.ContainsKey(parameterName))
 								versionValue = parameters[parameterName];
 							else
-								versionValue = "-Unkown Value-";
+								versionValue = "-No Parameter-";
 						}
 
 						dependencies.Add(new
@@ -291,7 +298,8 @@ namespace MonoFor.DependSight.Controllers
 						File = fileInfo.FullName,
 						Name = fileInfo.Name,
 						Dependencies = dependencies,
-						Parameters = parameters
+						Parameters = parameters,
+						ParameterFile = parameterFile
 					});
 				}
 			}
