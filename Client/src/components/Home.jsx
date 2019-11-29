@@ -1,4 +1,5 @@
 import React, { Component } from "react";
+import GridLoader from "react-spinners/GridLoader";
 
 export class Home extends Component {
   static displayName = Home.name;
@@ -21,6 +22,7 @@ export class Home extends Component {
   };
 
   async getDependencies() {
+    this.setState({ data: [] });
     const path = this.state.projectPath;
     const result = await fetch("/api/dependencies", {
       method: "post",
@@ -30,8 +32,10 @@ export class Home extends Component {
       })
     });
     const json = await result.json();
-    this.setState({ loading: false, data: json });
-    this.checkLatestVersions();
+    this.setState({ loading: false, data: json }, () => {
+      this.packageNames = [];
+      this.checkLatestVersions();
+    });
   }
 
   async checkDependency(dependency) {
@@ -61,8 +65,7 @@ export class Home extends Component {
           };
         });
         return {
-          file: iproject.file,
-          name: iproject.name,
+          ...iproject,
           dependencies: dependencies
         };
       });
@@ -87,6 +90,8 @@ export class Home extends Component {
   getDependencyClassName(dependency) {
     if (!dependency.isChecked) return "";
 
+    if (dependency.currentVersion === "-No Parameter-") return "bg-danger";
+
     if (dependency.isLatest) return "bg-success";
 
     return "bg-warning";
@@ -100,6 +105,18 @@ export class Home extends Component {
     return "font-bold text-warning";
   }
 
+  getDependenciesState() {
+    const dependencyCount = this.state.data.projects
+      .map(project => project.dependencies.length)
+      .reduce((x, y) => x + y, 0);
+
+    const dependencyCheckCount = this.state.data.projects
+      .map(project => project.dependencies.filter(x => x.isChecked).length)
+      .reduce((x, y) => x + y, 0);
+
+    return `[${dependencyCheckCount}/${dependencyCount}]`;
+  }
+
   componentDidMount() {
     if (this.state.projectPath && this.state.projectPath.length) {
       this.getDependencies();
@@ -109,24 +126,110 @@ export class Home extends Component {
   render() {
     return (
       <div>
-        <div className="input-group mb-3">
-          <input
-            type="text"
-            className="form-control"
-            placeholder="Type your project path"
-            onChange={this.handleChange}
-            value={this.state.projectPath}
-          />
-          <div className="input-group-append">
-            <button
-              className="btn btn-outline-secondary"
-              type="button"
-              onClick={this.getDependencies.bind(this)}
-            >
-              Find Dependencies
-            </button>
+        <div className="form-group">
+          <label className="control-label">Solutions or Projects folder</label>
+          <div className="input-group mb-3">
+            <input
+              type="text"
+              className="form-control"
+              placeholder="Type your project path"
+              onChange={this.handleChange}
+              value={this.state.projectPath}
+            />
+            <div className="input-group-append">
+              <button
+                className="btn btn-outline-secondary"
+                type="button"
+                onClick={this.getDependencies.bind(this)}
+              >
+                Find
+              </button>
+              <button
+                className="btn btn-outline-secondary"
+                type="button"
+                onClick={this.getDependencies.bind(this)}
+              >
+                Update
+              </button>
+            </div>
           </div>
         </div>
+        {this.state.data &&
+          this.state.data.projects &&
+          this.state.data.projects
+            .map(
+              project => project.dependencies.filter(x => !x.isChecked).length
+            )
+            .reduce((x, y) => x + y, 0) > 0 && (
+            <div className="card mb-3">
+              <div className="card-body d-flex justify-content-center align-items-center">
+                <GridLoader sizeUnit={"px"} size={8} color={"#f00"} />
+                <span className="ml-2">
+                  {this.getDependenciesState()} Checking dependencies...
+                </span>
+              </div>
+            </div>
+          )}
+        {this.state.data && this.state.data.projects && (
+          <div className="row">
+            <div className="col-sm-6 col-lg-3 mb-3 mb-sm-3">
+              <div className="card">
+                <div className="card-body py-0 pb-2">
+                  <span className="display-4">
+                    {this.state.data.projects.length}
+                  </span>
+                  <h5 className="mb-0 text-primary">Project</h5>
+                </div>
+              </div>
+            </div>
+            <div className="col-sm-6 col-lg-3 mb-3 mb-sm-3">
+              <div className="card">
+                <div className="card-body py-0 pb-2">
+                  <span className="display-4">
+                    {this.state.data.projects
+                      .map(project => project.dependencies.length)
+                      .reduce((x, y) => x + y, 0)}
+                  </span>
+                  <h5 className="mb-0 text-warning">Dependencies</h5>
+                </div>
+              </div>
+            </div>
+            <div className="col-sm-6 col-lg-3 mb-3">
+              <div className="card">
+                <div className="card-body py-0 pb-2">
+                  <span className="display-4">
+                    {this.state.data.projects
+                      .map(
+                        project =>
+                          project.dependencies.filter(
+                            dependency => !dependency.isLatest
+                          ).length
+                      )
+                      .reduce((x, y) => x + y, 0)}
+                  </span>
+                  <h5 className="mb-0 text-danger">Outdated</h5>
+                </div>
+              </div>
+            </div>
+            <div className="col-sm-6 col-lg-3 mb-3">
+              <div className="card">
+                <div className="card-body py-0 pb-2">
+                  <span className="display-4">
+                    {this.state.data.projects
+                      .map(
+                        project =>
+                          project.dependencies.filter(
+                            dependency => dependency.isLatest
+                          ).length
+                      )
+                      .reduce((x, y) => x + y, 0)}
+                  </span>
+                  <h5 className="mb-0 text-success">Up to date</h5>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
         {this.state.data &&
           this.state.data.projects &&
           this.state.data.projects
@@ -134,7 +237,7 @@ export class Home extends Component {
             .map(item => (
               <div className="card mb-3 shadow-sm" key={item.file}>
                 <div className="card-body p-2">
-                  <h5 className="mb-0 d-flex align-items-center justify-content-between">
+                  <h5 className="mb-0">
                     <span>{item.name}</span>
                     <span
                       className="mt-1 d-block text-muted"
@@ -142,6 +245,19 @@ export class Home extends Component {
                     >
                       {item.file}
                     </span>
+                    {item.parameterFile && (
+                      <span
+                        className={
+                          "mt-1 d-block " +
+                          (item.parameterFile.indexOf("(NOT FOUND!)") === 0
+                            ? "text-danger"
+                            : "text-primary")
+                        }
+                        style={{ fontSize: "9pt" }}
+                      >
+                        {item.parameterFile}
+                      </span>
+                    )}
                   </h5>
                 </div>
                 <table className="table table-hover table-sm mb-0 text-monospace">
@@ -150,12 +266,14 @@ export class Home extends Component {
                       <th style={{ width: "20px" }} className="text-center">
                         #
                       </th>
-                      <th>Package</th>
-                      <th className="text-center">Version</th>
-                      <th className="text-center" style={{ width: "120px" }}>
+                      <th style={{ width: "70%" }}>Package</th>
+                      <th style={{ width: "10%" }} className="text-center">
+                        Version
+                      </th>
+                      <th style={{ width: "10%" }} className="text-center">
                         Latest
                       </th>
-                      <th className="text-center" style={{ width: "120px" }}>
+                      <th style={{ width: "10%" }} className="text-center">
                         Is Latest
                       </th>
                     </tr>
@@ -178,7 +296,7 @@ export class Home extends Component {
                           <span
                             className={
                               (dependency.isParameter ? "text-primary" : "",
-                              dependency.currentVersion === "-Unkown Value-"
+                              dependency.currentVersion === "-No Parameter-"
                                 ? "text-danger"
                                 : "")
                             }
