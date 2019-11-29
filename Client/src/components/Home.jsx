@@ -10,7 +10,8 @@ export class Home extends Component {
     this.state = {
       data: [],
       loading: true,
-      projectPath: localStorage.getItem("projectPath")
+      projectPath: localStorage.getItem("projectPath"),
+      updating: false
     };
   }
 
@@ -117,6 +118,49 @@ export class Home extends Component {
     return `[${dependencyCheckCount}/${dependencyCount}]`;
   }
 
+  async updateDependencies() {
+    this.setState({ updating: true });
+    const outdatedDependencies = this.state.data.projects
+      .map(project =>
+        project.dependencies
+          .filter(dependency => dependency.isChecked && !dependency.isLatest)
+          .map(m => {
+            m.project = {
+              file: project.file,
+              parameterFile: project.parameterFile
+            };
+            return m;
+          })
+      )
+      .flat();
+    const errorProject = outdatedDependencies.find(
+      x => x.project && x.project.parameterFile.startsWith("(NOT FOUND!)")
+    );
+    if (errorProject) {
+      alert(
+        "One of your projects has invalid parameter file. Fix it first to update your dependencies."
+      );
+      return;
+    }
+    const body = JSON.stringify({
+      dependencies: outdatedDependencies
+    });
+    const updateResult = await fetch("/api/dependencies/update", {
+      method: "post",
+      headers: { "Content-Type": "application/json" },
+      body: body
+    });
+    const json = await updateResult.json();
+    if (json.success) {
+      this.getDependencies();
+      this.setState({ updating: false });
+      return;
+    }
+    alert(
+      `Something is wrong with your dependencies;\n\nError Message: ${json.message}`
+    );
+  }
+
   componentDidMount() {
     if (this.state.projectPath && this.state.projectPath.length) {
       this.getDependencies();
@@ -138,22 +182,30 @@ export class Home extends Component {
             />
             <div className="input-group-append">
               <button
-                className="btn btn-outline-secondary"
+                className="btn btn-secondary"
                 type="button"
                 onClick={this.getDependencies.bind(this)}
               >
                 Find
               </button>
               <button
-                className="btn btn-outline-secondary"
+                className="btn btn-primary"
                 type="button"
-                onClick={this.getDependencies.bind(this)}
+                onClick={this.updateDependencies.bind(this)}
               >
                 Update
               </button>
             </div>
           </div>
         </div>
+        {this.state.updating && (
+          <div className="card mb-3">
+            <div className="card-body d-flex justify-content-center align-items-center">
+              <GridLoader sizeUnit={"px"} size={8} color={"#2DA74E"} />
+              <span className="ml-2">Updating dependencies...</span>
+            </div>
+          </div>
+        )}
         {this.state.data &&
           this.state.data.projects &&
           this.state.data.projects

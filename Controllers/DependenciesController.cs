@@ -13,7 +13,6 @@ using NuGet.Common;
 using NuGet.Configuration;
 using NuGet.Protocol;
 using NuGet.Protocol.Core.Types;
-using NuGet.Versioning;
 
 namespace MonoFor.DependSight.Controllers
 {
@@ -175,6 +174,41 @@ namespace MonoFor.DependSight.Controllers
 			public string ProjectPath { get; set; }
 		}
 
+		public class UpdateDependenciesModel
+		{
+			public List<DependencyModel> Dependencies { get; set; }
+		}
+
+		[HttpPost("update")]
+		public async Task<IActionResult> Update(UpdateDependenciesModel value)
+		{
+			foreach (var dependency in value.Dependencies)
+			{
+				if (dependency.IsParameter)
+				{
+					if (string.IsNullOrEmpty(dependency.Project.ParameterFile)) continue;
+					var parameterFileXml = new XmlDocument();
+					using (var sr = new StreamReader(dependency.Project.ParameterFile))
+					{
+						parameterFileXml.Load(sr);
+						var packageReference = parameterFileXml.SelectSingleNode($"//{dependency.ParameterName}");
+						packageReference.InnerText = dependency.LatestVersion;
+						parameterFileXml.Save(dependency.Project.ParameterFile);
+					}
+					continue;
+				}
+				var projectFileXml = new XmlDocument();
+				using (var sr = new StreamReader(dependency.Project.File))
+				{
+					projectFileXml.Load(sr);
+					var packageReference = projectFileXml.SelectSingleNode($"//PackageReference[@Include='{dependency.Name}']");
+					packageReference.Attributes["Version"].Value = dependency.LatestVersion;
+					projectFileXml.Save(dependency.Project.File);
+				}
+			}
+			return await Task.Run(() => Ok(new { Success = true, Message = "Dependencies are updated." }));
+		}
+
 		[HttpPost]
 		public async Task<object> Post(FindDependenciesModel value)
 		{
@@ -224,7 +258,7 @@ namespace MonoFor.DependSight.Controllers
 					var xml = await sr.ReadToEndAsync();
 					xmlDoc.LoadXml(xml);
 
-					var dependencies = new List<object>();
+					var dependencies = new List<DependencyModel>();
 
 					var parameters = new Dictionary<string, string>();
 					var parameterFile = string.Empty;
@@ -280,7 +314,7 @@ namespace MonoFor.DependSight.Controllers
 								versionValue = "-No Parameter-";
 						}
 
-						dependencies.Add(new
+						dependencies.Add(new DependencyModel
 						{
 							Name = nameAttribute.Value,
 							CurrentVersion = versionValue,
@@ -289,11 +323,12 @@ namespace MonoFor.DependSight.Controllers
 							IsLatest = false,
 							Source = default(object),
 							IsParameter = parameterMatch.Success,
-							ParameterName = parameterName
+							ParameterName = parameterName,
+							Project = default(ProjectModel)
 						});
 					}
 
-					projects.Add(new
+					projects.Add(new ProjectModel
 					{
 						File = fileInfo.FullName,
 						Name = fileInfo.Name,
@@ -311,5 +346,27 @@ namespace MonoFor.DependSight.Controllers
 				NugetConfig = configFiles
 			};
 		}
+	}
+
+	public class ProjectModel
+	{
+		public string File { get; set; }
+		public string Name { get; set; }
+		public List<DependencyModel> Dependencies { get; set; }
+		public Dictionary<string, string> Parameters { get; set; }
+		public string ParameterFile { get; set; }
+	}
+
+	public class DependencyModel
+	{
+		public string Name { get; set; }
+		public string CurrentVersion { get; set; }
+		public string LatestVersion { get; set; }
+		public bool IsChecked { get; set; }
+		public bool IsLatest { get; set; }
+		public object Source { get; set; }
+		public bool IsParameter { get; set; }
+		public string ParameterName { get; set; }
+		public ProjectModel Project { get; set; }
 	}
 }
