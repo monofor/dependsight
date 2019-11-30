@@ -1,5 +1,7 @@
 # What is this?
 
+![Overview](docs/img/dependsight.png)
+
 It is easy to use .NET Core dependency visualizer.
 
 Single click update for your all dependencies. You can see your outdated packages.
