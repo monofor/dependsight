@@ -40,9 +40,9 @@ namespace MonoFor.DependSight.Controllers
 		[HttpPost]
 		public async Task<object> Post(FindDependenciesModel value)
 		{
-			var result = await _processor.Post(value);
+			var result = await _processor.Find(value);
 
-			return value;
+			return Ok(result);
 		}
 	}
 }

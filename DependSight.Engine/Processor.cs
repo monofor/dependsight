@@ -114,7 +114,7 @@ namespace MonoFor.DependSight.Engine
 			return new { Success = true, Message = "Dependencies are updated." };
 		}
 
-		public async Task<object> Post(FindDependenciesModel value)
+		public async Task<object> Find(FindDependenciesModel value)
 		{
 			var path = value?.ProjectPath ?? "";
 			if (string.IsNullOrEmpty(path)) path = "./";
