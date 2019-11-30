@@ -11,9 +11,8 @@ Similiar to `dotnet-outdated` but more visual one.
 # How to use?
 
 ```shell
-cd client
-npm install
-cd ..
+dotnet build
+cd DependSight
 dotnet run
 ```
 
