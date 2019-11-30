@@ -14,4 +14,4 @@ Similiar to `dotnet-outdated` but more visual one.
 
 # Bring the light
 
-![Demo](docs/img/dependsight-demo.gif)
+![Demo](docs/img/dependsight.gif)
