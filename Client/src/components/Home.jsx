@@ -11,7 +11,8 @@ export class Home extends Component {
       data: [],
       loading: true,
       projectPath: localStorage.getItem("projectPath"),
-      updating: false
+      updating: false,
+      checking: false
     };
   }
 
@@ -33,13 +34,11 @@ export class Home extends Component {
       })
     });
     const json = await result.json();
-    this.setState({ loading: false, data: json }, () => {
-      this.packageNames = [];
-      this.checkLatestVersions();
-    });
+    this.setState({ loading: false, data: json });
   }
 
   async checkDependency(dependency) {
+    this.packageNames = [];
     if (this.packageNames.indexOf(dependency.name) !== -1) return;
     this.packageNames.push(dependency.name);
     const result = await fetch("/api/dependencies/check", {
@@ -51,7 +50,33 @@ export class Home extends Component {
       })
     });
     const json = await result.json();
-    if (!json || json.length === 0) return;
+    if (!json || json.length === 0) {
+      this.setState(state => {
+        const projects = state.data.projects.map(iproject => {
+          const dependencies = iproject.dependencies.map(idependency => {
+            if (idependency.name !== dependency.name) return idependency;
+            return {
+              ...idependency,
+              isChecked: true,
+              isNotFound: true,
+              latestVersion: "Not Found",
+              isLatest: false
+            };
+          });
+          return {
+            ...iproject,
+            dependencies: dependencies
+          };
+        });
+        return {
+          data: {
+            ...state.data,
+            projects
+          }
+        };
+      });
+      return;
+    }
     const value = json[0];
     this.setState(state => {
       const projects = state.data.projects.map(iproject => {
@@ -81,6 +106,7 @@ export class Home extends Component {
   }
 
   checkLatestVersions() {
+    this.setState({ checking: true });
     for (const project of this.state.data.projects) {
       for (const dependency of project.dependencies) {
         this.checkDependency(dependency);
@@ -94,6 +120,8 @@ export class Home extends Component {
     if (dependency.currentVersion === "-No Parameter-") return "bg-danger";
 
     if (dependency.isLatest) return "bg-success";
+
+    if (dependency.isNotFound) return "bg-danger";
 
     return "bg-warning";
   }
@@ -114,6 +142,10 @@ export class Home extends Component {
     const dependencyCheckCount = this.state.data.projects
       .map(project => project.dependencies.filter(x => x.isChecked).length)
       .reduce((x, y) => x + y, 0);
+
+    if (dependencyCount === dependencyCheckCount) {
+      this.setState({ checking: false });
+    }
 
     return `[${dependencyCheckCount}/${dependencyCount}]`;
   }
@@ -187,6 +219,13 @@ export class Home extends Component {
                 onClick={this.getDependencies.bind(this)}
               >
                 Find
+              </button>{" "}
+              <button
+                className="btn btn-warning"
+                type="button"
+                onClick={this.checkLatestVersions.bind(this)}
+              >
+                Check
               </button>
               <button
                 className="btn btn-primary"
@@ -206,22 +245,16 @@ export class Home extends Component {
             </div>
           </div>
         )}
-        {this.state.data &&
-          this.state.data.projects &&
-          this.state.data.projects
-            .map(
-              project => project.dependencies.filter(x => !x.isChecked).length
-            )
-            .reduce((x, y) => x + y, 0) > 0 && (
-            <div className="card mb-3">
-              <div className="card-body d-flex justify-content-center align-items-center">
-                <GridLoader sizeUnit={"px"} size={8} color={"#f00"} />
-                <span className="ml-2">
-                  {this.getDependenciesState()} Checking dependencies...
-                </span>
-              </div>
+        {this.state.checking && (
+          <div className="card mb-3">
+            <div className="card-body d-flex justify-content-center align-items-center">
+              <GridLoader sizeUnit={"px"} size={8} color={"#f00"} />
+              <span className="ml-2">
+                {this.getDependenciesState()} Checking dependencies...
+              </span>
             </div>
-          )}
+          </div>
+        )}
         {this.state.data && this.state.data.projects && (
           <div className="row">
             <div className="col-sm-6 col-lg-3 mb-3 mb-sm-3">
@@ -337,7 +370,7 @@ export class Home extends Component {
                           className={this.getDependencyClassName(dependency)}
                         ></td>
                         <td>
-                          {dependency.name}
+                          <a href={`https://www.nuget.org/packages/${dependency.name}/`} target="_blank">{dependency.name}</a>
                           {dependency.isParameter && (
                             <small className="d-block text-muted">
                               Parameter: $({dependency.parameterName})
