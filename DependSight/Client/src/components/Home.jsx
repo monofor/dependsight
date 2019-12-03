@@ -7,9 +7,12 @@ export class Home extends Component {
 	INITIAL_STATE = {
 		data: [],
 		loading: true,
-		projectPath: localStorage.getItem("projectPath"),
 		updating: false,
-		checking: false
+		checking: false,
+		projectPath: localStorage.getItem("projectPath") || "",
+		includePrerelease:
+			JSON.parse(localStorage.getItem("includePrerelease")) || false,
+		pathError: ""
 	};
 	constructor(props) {
 		super(props);
@@ -20,12 +23,22 @@ export class Home extends Component {
 	handleChange = e => {
 		localStorage.setItem("projectPath", e.target.value);
 		this.setState({
-			projectPath: e.target.value
+			projectPath: e.target.value.trim()
+		});
+	};
+
+	handleChangeCheck = e => {
+		localStorage.setItem(
+			"includePrerelease",
+			JSON.stringify(e.target.checked)
+		);
+		this.setState({
+			includePrerelease: e.target.checked
 		});
 	};
 
 	async getDependencies() {
-		this.setState({ data: [] });
+		this.setState({ data: [], pathError: "" });
 		const path = this.state.projectPath;
 		const result = await fetch("/api/dependencies", {
 			method: "post",
@@ -35,15 +48,28 @@ export class Home extends Component {
 			})
 		});
 		const json = await result.json();
-		this.setState({ loading: false, data: json });
+		if (json.error) {
+			this.setState({ pathError: json.error });
+		} else {
+			this.setState({ loading: false, data: json });
+		}
 	}
 
 	async checkLatestVersions() {
+		if (!this.state.projectPath) {
+			return this.setState({ pathError: "You should provide a path." });
+		}
+		if (!this.state.data.projects) {
+			return this.setState({
+				pathError: "Try to 'Find' your project first."
+			});
+		}
+
 		for (const child of this.children) {
-			this.setState({ checking: true });
+			this.setState({ checking: true, pathError: "" });
 			await child.updateRow();
 		}
-		this.setState({ checking: false });
+		this.setState({ checking: false, pathError: "" });
 	}
 
 	getDependenciesState() {
@@ -65,7 +91,14 @@ export class Home extends Component {
 	}
 
 	async updateDependencies() {
-		this.setState({ updating: true });
+		if (!this.state.projectPath)
+			return this.setState({ pathError: "You should provide a path." });
+		if (!this.state.data.projects) {
+			return this.setState({
+				pathError: "Try to 'Find' your project first."
+			});
+		}
+		this.setState({ updating: true, pathError: "" });
 		const outdatedDependencies = this.state.data.projects
 			.map(project =>
 				project.dependencies
@@ -129,11 +162,36 @@ export class Home extends Component {
 					<div className="input-group mb-3">
 						<input
 							type="text"
-							className="form-control"
+							className={
+								"form-control" +
+								(this.state.pathError
+									? " is-invalid"
+									: this.state.data.projects
+									? " is-valid"
+									: "")
+							}
 							placeholder="Type your project path"
 							onChange={this.handleChange}
 							value={this.state.projectPath}
 						/>
+						<div className="invalid-feedback">
+							{this.state.pathError}
+						</div>
+						<div className="input-group-append">
+							<div className="input-group-text">
+								<input
+									type="checkbox"
+									className="form-check-input ml-0"
+									defaultChecked={
+										this.state.includePrerelease
+									}
+									onChange={this.handleChangeCheck}
+								/>
+								<label className="form-check-label ml-3">
+									Include Prerelease
+								</label>
+							</div>
+						</div>
 						<div className="input-group-append">
 							<button
 								className="btn btn-secondary"
@@ -335,6 +393,10 @@ export class Home extends Component {
 													key={`${item.file}:${dependency.name}`}
 													onRef={ref =>
 														this.children.push(ref)
+													}
+													includePrerelease={
+														this.state
+															.includePrerelease
 													}
 													data={this.state.data}
 													projectId={projectIdx}

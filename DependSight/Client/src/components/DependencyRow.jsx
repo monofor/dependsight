@@ -8,9 +8,6 @@ export class DependencyRow extends Component {
 	dependency = this.props.data.projects[this.props.projectId].dependencies[
 		this.props.dependencyId
 	];
-	constructor(props) {
-		super(props);
-	}
 
 	componentDidMount() {
 		this.props.onRef(this);
@@ -22,7 +19,8 @@ export class DependencyRow extends Component {
 			headers: { "Content-Type": "application/json" },
 			body: JSON.stringify({
 				packageName: this.dependency.name,
-				sources: this.props.data.nugetConfig
+				sources: this.props.data.nugetConfig,
+				includePrerelease: this.props.includePrerelease
 			})
 		});
 		const json = await dependencies.json();

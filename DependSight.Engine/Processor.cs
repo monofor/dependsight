@@ -118,10 +118,24 @@ namespace MonoFor.DependSight.Engine
         {
             var path = value?.ProjectPath ?? "";
             if (string.IsNullOrEmpty(path)) path = "./";
-            var currentDirectory = new System.IO.DirectoryInfo(path);
-
+            var currentDirectory = new DirectoryInfo(path);
+            if (!currentDirectory.Exists)
+            {
+                return new
+                {
+                    error = "Project Directory Not Found"
+                };
+            }
             var projectFiles = currentDirectory.GetFiles("*.csproj", System.IO.SearchOption.AllDirectories);
             var nugetConfigFiles = currentDirectory.GetFiles("nuget.config", System.IO.SearchOption.TopDirectoryOnly);
+
+            if (projectFiles.Length == 0 && nugetConfigFiles.Length == 0)
+            {
+                return new
+                {
+                    error = "Any '.csproj' or 'nuget.config' file could not be found. You should be sure to give root path of your repository."
+                };
+            }
 
             var configFiles = new List<ConfigFile>();
             foreach (var fileInfo in nugetConfigFiles)
