@@ -11,6 +11,7 @@ export class Home extends Component {
       data: [],
       loading: true,
       projectPath: localStorage.getItem("projectPath"),
+      includePrerelease: JSON.parse(localStorage.getItem("includePrerelease")) || false,
       updating: false,
       checking: false
     };
@@ -21,6 +22,13 @@ export class Home extends Component {
     this.setState({
       projectPath: e.target.value
     });
+  };
+
+  handleChangeCheck = e => {
+      localStorage.setItem("includePrerelease", JSON.stringify(e.target.checked));
+	  this.setState({
+		  includePrerelease: e.target.checked
+	  });
   };
 
   async getDependencies() {
@@ -46,7 +54,8 @@ export class Home extends Component {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         packageName: dependency.name,
-        sources: this.state.data.nugetConfig
+        sources: this.state.data.nugetConfig,
+        includePrerelease: this.state.includePrerelease
       })
     });
     const json = await result.json();
@@ -212,6 +221,16 @@ export class Home extends Component {
               onChange={this.handleChange}
               value={this.state.projectPath}
             />
+            <div className="input-group-append">
+	            <div className="input-group-text">
+		            <input
+			            type="checkbox"
+			            className="form-check-input ml-0"
+			            defaultChecked={this.state.includePrerelease}
+			            onChange={this.handleChangeCheck} />
+		            <label className="form-check-label ml-3">Include Prerelease</label>
+	            </div>
+            </div>
             <div className="input-group-append">
               <button
                 className="btn btn-secondary"
