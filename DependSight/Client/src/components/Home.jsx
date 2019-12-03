@@ -65,10 +65,14 @@ export class Home extends Component {
 			});
 		}
 
-		for (const child of this.children) {
-			this.setState({ checking: true, pathError: "" });
-			await child.updateRow();
-		}
+		this.children.map(async child => {
+			this.setState(prev => {
+				prev.checking = true;
+				prev.pathError = "";
+				return prev;
+			}, await child.updateRow());
+		});
+
 		this.setState({ checking: false, pathError: "" });
 	}
 
@@ -86,7 +90,6 @@ export class Home extends Component {
 		if (dependencyCount === dependencyCheckCount) {
 			this.setState({ checking: false });
 		}
-
 		return `[${dependencyCheckCount}/${dependencyCount}]`;
 	}
 
