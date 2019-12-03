@@ -9,5 +9,6 @@
     "nupkg": "dotnet pack -c Release",
     "tool:update": "dotnet tool update --global --add-source ./nupkg MonoFor.Dependsight",
     "tool:install": "dotnet tool install --global --add-source ./nupkg MonoFor.Dependsight"
-  }
+  },
+  "dependencies": {}
 }
