@@ -11,6 +11,7 @@ export class Home extends Component {
       data: [],
       loading: true,
       projectPath: localStorage.getItem("projectPath") || "",
+      includePrerelease: JSON.parse(localStorage.getItem("includePrerelease")) || false,
       updating: false,
       checking: false,
 	    pathError: ""
@@ -22,6 +23,13 @@ export class Home extends Component {
     this.setState({
       projectPath: e.target.value.trim()
     });
+  };
+
+  handleChangeCheck = e => {
+      localStorage.setItem("includePrerelease", JSON.stringify(e.target.checked));
+	  this.setState({
+		  includePrerelease: e.target.checked
+	  });
   };
 
   async getDependencies() {
@@ -51,7 +59,8 @@ export class Home extends Component {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         packageName: dependency.name,
-        sources: this.state.data.nugetConfig
+        sources: this.state.data.nugetConfig,
+        includePrerelease: this.state.includePrerelease
       })
     });
     const json = await result.json();
@@ -221,42 +230,48 @@ export class Home extends Component {
         <div className="form-group">
           <label className="control-label">Solutions or Projects folder</label>
           <div className="input-group mb-3">
-            <div className="col-9">
-              <input
-                type="text"
-                className={ "form-control" + (this.state.pathError ? " is-invalid" : (this.state.data.projects ? " is-valid" : "")) }
-                placeholder="Type your project path"
-                onChange={this.handleChange}
-                value={this.state.projectPath}
-              />
-              <div className="invalid-feedback">
+<input
+              type="text"
+              className={ "form-control" + (this.state.pathError ? " is-invalid" : (this.state.data.projects ? " is-valid" : "")) }
+              placeholder="Type your project path"
+              onChange={this.handleChange}
+              value={this.state.projectPath}
+            />
+			<div className="invalid-feedback">
                 {this.state.pathError}
-              </div>
             </div>
-            <div className="col-3">
-              <div className="input-group-append">
-                <button
-                  className="btn btn-secondary"
-                  type="button"
-                  onClick={this.getDependencies.bind(this)}
-                >
-                  Find
-                </button>{" "}
-                <button
-                  className="btn btn-warning"
-                  type="button"
-                  onClick={this.checkLatestVersions.bind(this)}
-                >
-                  Check
-                </button>
-                <button
-                  className="btn btn-primary"
-                  type="button"
-                  onClick={this.updateDependencies.bind(this)}
-                >
-                  Update
-                </button>
-              </div>
+            <div className="input-group-append">
+	            <div className="input-group-text">
+		            <input
+			            type="checkbox"
+			            className="form-check-input ml-0"
+			            defaultChecked={this.state.includePrerelease}
+			            onChange={this.handleChangeCheck} />
+		            <label className="form-check-label ml-3">Include Prerelease</label>
+	            </div>
+            </div>
+            <div className="input-group-append">
+              <button
+                className="btn btn-secondary"
+                type="button"
+                onClick={this.getDependencies.bind(this)}
+              >
+                Find
+              </button>{" "}
+              <button
+                className="btn btn-warning"
+                type="button"
+                onClick={this.checkLatestVersions.bind(this)}
+              >
+                Check
+              </button>
+              <button
+                className="btn btn-primary"
+                type="button"
+                onClick={this.updateDependencies.bind(this)}
+              >
+                Update
+              </button>
             </div>
           </div>
         </div>
