@@ -10,21 +10,22 @@ export class Home extends Component {
     this.state = {
       data: [],
       loading: true,
-      projectPath: localStorage.getItem("projectPath"),
+      projectPath: localStorage.getItem("projectPath") || "",
       updating: false,
-      checking: false
+      checking: false,
+	    pathError: ""
     };
   }
 
   handleChange = e => {
     localStorage.setItem("projectPath", e.target.value);
     this.setState({
-      projectPath: e.target.value
+      projectPath: e.target.value.trim()
     });
   };
 
   async getDependencies() {
-    this.setState({ data: [] });
+    this.setState({ data: [], pathError: "" });
     const path = this.state.projectPath;
     const result = await fetch("/api/dependencies", {
       method: "post",
@@ -34,7 +35,11 @@ export class Home extends Component {
       })
     });
     const json = await result.json();
-    this.setState({ loading: false, data: json });
+    if (json.error) {
+      this.setState({ pathError: json.error })
+    } else {
+      this.setState({ loading: false, data: json });
+    }
   }
 
   async checkDependency(dependency) {
@@ -106,7 +111,13 @@ export class Home extends Component {
   }
 
   checkLatestVersions() {
-    this.setState({ checking: true });
+    if (!this.state.projectPath) {
+      return this.setState({ pathError: "You should provide a path." })
+    }
+    if (!this.state.data.projects) {
+      return this.setState({ pathError: "Try to 'Find' your project first." })
+    }
+    this.setState({ checking: true, pathError: "" });
     for (const project of this.state.data.projects) {
       for (const dependency of project.dependencies) {
         this.checkDependency(dependency);
@@ -151,7 +162,12 @@ export class Home extends Component {
   }
 
   async updateDependencies() {
-    this.setState({ updating: true });
+    if (!this.state.projectPath) 
+      return this.setState({ pathError: "You should provide a path." })
+    if (!this.state.data.projects) {
+      return this.setState({ pathError: "Try to 'Find' your project first." })
+    }
+    this.setState({ updating: true, pathError: "" });
     const outdatedDependencies = this.state.data.projects
       .map(project =>
         project.dependencies
@@ -205,35 +221,42 @@ export class Home extends Component {
         <div className="form-group">
           <label className="control-label">Solutions or Projects folder</label>
           <div className="input-group mb-3">
-            <input
-              type="text"
-              className="form-control"
-              placeholder="Type your project path"
-              onChange={this.handleChange}
-              value={this.state.projectPath}
-            />
-            <div className="input-group-append">
-              <button
-                className="btn btn-secondary"
-                type="button"
-                onClick={this.getDependencies.bind(this)}
-              >
-                Find
-              </button>{" "}
-              <button
-                className="btn btn-warning"
-                type="button"
-                onClick={this.checkLatestVersions.bind(this)}
-              >
-                Check
-              </button>
-              <button
-                className="btn btn-primary"
-                type="button"
-                onClick={this.updateDependencies.bind(this)}
-              >
-                Update
-              </button>
+            <div className="col-9">
+              <input
+                type="text"
+                className={ "form-control" + (this.state.pathError ? " is-invalid" : (this.state.data.projects ? " is-valid" : "")) }
+                placeholder="Type your project path"
+                onChange={this.handleChange}
+                value={this.state.projectPath}
+              />
+              <div className="invalid-feedback">
+                {this.state.pathError}
+              </div>
+            </div>
+            <div className="col-3">
+              <div className="input-group-append">
+                <button
+                  className="btn btn-secondary"
+                  type="button"
+                  onClick={this.getDependencies.bind(this)}
+                >
+                  Find
+                </button>{" "}
+                <button
+                  className="btn btn-warning"
+                  type="button"
+                  onClick={this.checkLatestVersions.bind(this)}
+                >
+                  Check
+                </button>
+                <button
+                  className="btn btn-primary"
+                  type="button"
+                  onClick={this.updateDependencies.bind(this)}
+                >
+                  Update
+                </button>
+              </div>
             </div>
           </div>
         </div>
