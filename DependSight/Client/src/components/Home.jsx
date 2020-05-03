@@ -143,9 +143,15 @@ export class Home extends Component {
 			this.getDependencies();
 			return;
 		}
-		alert(
-			`Something is wrong with your dependencies;\n\nError Message: ${json.message}`
-		);
+        else {
+
+            alert(
+                `Something is wrong with your dependencies;\n\nError Message: ${json.message}`
+            );
+            this.state.updating = false;
+            this.getDependencies();
+            return;
+        }
 	}
 
 	componentDidMount() {

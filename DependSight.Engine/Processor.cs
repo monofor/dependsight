@@ -86,32 +86,42 @@ namespace MonoFor.DependSight.Engine
 
         public object Update(UpdateDependenciesModel value)
         {
-            foreach (var dependency in value.Dependencies)
-            {
-                if (dependency.IsParameter)
-                {
-                    if (string.IsNullOrEmpty(dependency.Project.ParameterFile)) continue;
-                    var parameterFileXml = new XmlDocument();
-                    using (var sr = new StreamReader(dependency.Project.ParameterFile))
-                    {
-                        parameterFileXml.Load(sr);
-                        var packageReference = parameterFileXml.SelectSingleNode($"//{dependency.ParameterName}");
-                        packageReference.InnerText = dependency.LatestVersion;
-                        parameterFileXml.Save(dependency.Project.ParameterFile);
-                    }
-                    continue;
-                }
-                var projectFileXml = new XmlDocument();
-                using (var sr = new StreamReader(dependency.Project.File))
-                {
-                    projectFileXml.Load(sr);
-                    var packageReference = projectFileXml.SelectSingleNode($"//PackageReference[@Include='{dependency.Name}']");
-                    packageReference.Attributes["Version"].Value = dependency.LatestVersion;
-                    projectFileXml.Save(dependency.Project.File);
-                }
-            }
+			try
+			{
+				foreach (var dependency in value.Dependencies)
+				{
+					if (dependency.IsParameter)
+					{
+						if (string.IsNullOrEmpty(dependency.Project.ParameterFile)) continue;
+						var parameterFileXml = new XmlDocument();
+						using (var sr = new StreamReader(dependency.Project.ParameterFile))
+						{
+							parameterFileXml.Load(sr);
+							var packageReference = parameterFileXml.SelectSingleNode($"//{dependency.ParameterName}");
+							packageReference.InnerText = dependency.LatestVersion;
+							parameterFileXml.Save(dependency.Project.ParameterFile);
+						}
+						continue;
+					}
+					var projectFileXml = new XmlDocument();
+					using (var sr = new StreamReader(dependency.Project.File))
+					{
+						projectFileXml.Load(sr);
+						var packageReference = projectFileXml.SelectSingleNode($"//PackageReference[@Include='{dependency.Name}']");
+						packageReference.Attributes["Version"].Value = dependency.LatestVersion;
+						projectFileXml.Save(dependency.Project.File);
+					}
+				}
 
-            return new { Success = true, Message = "Dependencies are updated." };
+				return new { Success = true, Message = "Dependencies are updated." };
+			}
+			catch (Exception ex)
+			{
+
+				return new { Success = false, Message = ex.Message };
+				throw;
+			}
+           
         }
 
         public async Task<object> Find(FindDependenciesModel value)
