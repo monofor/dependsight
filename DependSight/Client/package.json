@@ -18,7 +18,7 @@
     "rimraf": "^2.6.2"
   },
   "devDependencies": {
-    "ajv": "^6.9.1",
+    "ajv": "^6.12.3",
     "cross-env": "^5.2.0",
     "typescript": "^3.5.2"
   },
